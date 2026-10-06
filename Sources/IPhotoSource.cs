@@ -13,4 +13,5 @@ public interface IPhotoSession : IDisposable
 {
     List<PhotoItem> Scan(Period period, CancellationToken ct);
     void CopyTo(PhotoItem photo, string destFilePath);
+    Task CopyToAsync(PhotoItem photo, string destFilePath, CancellationToken ct = default);
 }

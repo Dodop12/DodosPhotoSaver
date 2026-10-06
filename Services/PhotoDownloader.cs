@@ -6,10 +6,10 @@ namespace DodosPhotoSaver.Services;
 public static class PhotoDownloader
 {
     /// <summary>Copia le foto nella cartella di destinazione, sostituendo i file già esistenti.</summary>
-    public static DownloadResult Download(IPhotoSession session, IReadOnlyList<PhotoItem> photos, string destDir,
-                                          IProgress<int> progress, CancellationToken ct)
+    public static async Task<DownloadResult> DownloadAsync(IPhotoSession session, IReadOnlyList<PhotoItem> photos, string destDir,
+            IProgress<int> progress, CancellationToken ct)
     {
-        Directory.CreateDirectory(destDir);
+        Directory.CreateDirectory(destDir); // Create the folder if it does not already exist
         var namer = new SafeFileNamer(destDir);
         var errors = new List<string>();
         int copied = 0;
@@ -24,9 +24,10 @@ public static class PhotoDownloader
             {
                 string target = namer.GetTargetPath(photo.Name);
 
-                // Scarica in un file temporaneo, poi sostituisce: niente file a metà in caso di errore
-                tempPath = target + ".tmp";
-                session.CopyTo(photo, tempPath);
+                // Usa un identificatore univoco per il file temporaneo per evitare collisioni
+                tempPath = Path.Combine(destDir, $".dps_{Guid.NewGuid():N}.tmp");
+                await session.CopyToAsync(photo, tempPath, ct).ConfigureAwait(false);
+                
                 File.Move(tempPath, target, overwrite: true);
                 tempPath = null;
                 copied++;
@@ -43,7 +44,7 @@ public static class PhotoDownloader
             {
                 if (tempPath != null)
                 {
-                    try { File.Delete(tempPath); } catch { /* ignora */ }
+                    try { File.Delete(tempPath); } catch { }
                 }
             }
 

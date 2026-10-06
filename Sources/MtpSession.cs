@@ -137,5 +137,16 @@ public sealed class MtpSession : IPhotoSession
     public void CopyTo(PhotoItem photo, string destFilePath)
         => _device.DownloadFile(photo.DevicePath, destFilePath);
 
+    public Task CopyToAsync(PhotoItem photo, string destFilePath, CancellationToken ct = default)
+    {
+        return Task.Run(() =>
+        {
+            // Controlla l'annullamento prima di avviare il trasferimento del singolo file
+            ct.ThrowIfCancellationRequested();
+
+            _device.DownloadFile(photo.DevicePath, destFilePath);
+        }, ct);
+    }
+
     public void Dispose() => _device.Dispose();
 }

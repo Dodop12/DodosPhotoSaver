@@ -110,7 +110,7 @@ public class MainForm : Form
             var result = await Task.Run(() =>
             {
                 using var session = _source.Open(device);
-                return PhotoDownloader.Download(session, photos, fullPath, progress, ct);
+                return PhotoDownloader.DownloadAsync(session, photos, fullPath, progress, ct);
             }, ct);
 
             Dialogs.Completed(this, result, total, fullPath);

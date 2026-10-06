@@ -4,33 +4,41 @@ namespace DodosPhotoSaver.Views;
 
 public class SelectionView : UserControl
 {
-    private readonly Label _lblPhone = new() { AutoSize = true, Location = new Point(20, 15) };
-    private readonly ComboBox _cmbYear = new() { DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly Label _lblPhone = new() { AutoSize = true };
+
+    private readonly ComboBox _cmbYear = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 110 };
     private readonly CheckBox _chkMonth = new() { Text = "Mese specifico", AutoSize = true };
-    private readonly ComboBox _cmbMonth = new() { DropDownStyle = ComboBoxStyle.DropDownList, Visible = false };
-    private readonly TextBox _txtPath = new() { ReadOnly = true };
-    private readonly Button _btnBrowse = new() { Text = "Sfoglia..." };
-    private readonly TextBox _txtName = new() { MaxLength = 100 };
-    private readonly ProgressBar _bar = new() { Visible = false }; // visibile solo durante un'operazione
-    private readonly Label _lblStatus = new() { AutoSize = false, TextAlign = ContentAlignment.MiddleLeft };
-    private readonly Button _btnDownload = new() { Text = "Scarica Foto" };
-    private readonly Button _btnCancel = new() { Text = "Annulla", Visible = false };
+    private readonly ComboBox _cmbMonth = new() { DropDownStyle = ComboBoxStyle.DropDownList, Visible = false, Width = 150 };
+    
+    private readonly TextBox _txtPath = new() { ReadOnly = true, Dock = DockStyle.Fill };
+    private readonly Button _btnBrowse = new() { Text = "Sfoglia...", AutoSize = true, Anchor = AnchorStyles.Left | AnchorStyles.Right };
+    private readonly TextBox _txtName = new() { MaxLength = 100, Width = 300 };
+    
+    private readonly ProgressBar _bar = new() { Visible = false, Dock = DockStyle.Fill };
+    private readonly Label _lblStatus = new() { AutoSize = true, TextAlign = ContentAlignment.MiddleLeft };
+    private readonly Button _btnDownload = new() { Text = "Scarica Foto", Height = 40, Dock = DockStyle.Fill };
+    private readonly Button _btnCancel = new() { Text = "Annulla", Height = 40, Visible = false, Dock = DockStyle.Fill };
 
     private string _lastDefaultName = "";
 
     public event EventHandler? DownloadClicked;
     public event EventHandler? CancelClicked;
 
-    //Anno, oppure anno + mese se "Mese specifico" è selezionato
-    public Period Period => new((int)_cmbYear.SelectedItem!,
-                                _chkMonth.Checked ? _cmbMonth.SelectedIndex + 1 : null);
+    public Period Period => new((int)_cmbYear.SelectedItem!, _chkMonth.Checked ? _cmbMonth.SelectedIndex + 1 : null);
     public string ParentDir => _txtPath.Text;
     public string FolderName => _txtName.Text.Trim();
 
     public SelectionView()
     {
+        InitializeData();
+        BuildLayout();
+        RegisterEvents();
+    }
+
+    private void InitializeData()
+    {
         int currentYear = DateTime.Now.Year;
-        for (int y = currentYear; y >= 2007; y--) _cmbYear.Items.Add(y); // 2007 = primo iPhone
+        for (int y = currentYear; y >= 2007; y--) _cmbYear.Items.Add(y);
         _cmbYear.SelectedIndex = 0;
 
         _cmbMonth.Items.AddRange(Period.MonthNames);
@@ -39,26 +47,83 @@ public class SelectionView : UserControl
         _txtPath.Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         _lastDefaultName = Period.DefaultFolderName;
         _txtName.Text = _lastDefaultName;
+    }
 
-        Controls.Add(_lblPhone);
-        AddRow("Anno", _cmbYear, 50, 120);
-        AddRow("Salva in", _txtPath, 105, 370);
-        AddRow("Nome cartella", _txtName, 155, 300);
+    private void BuildLayout()
+    {
+        var mainLayout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(15),
+            ColumnCount = 3,
+            RowCount = 8,
+            AutoSize = true
+        };
 
-        _chkMonth.Left = 160;
-        _cmbMonth.Left = 320;
-        _cmbMonth.Width = 180;
-        _bar.SetBounds(20, 235, 480, 18);
-        _lblStatus.SetBounds(20, 255, 480, 24);
-        _btnDownload.SetBounds(20, 290, 480, 38);
-        _btnCancel.SetBounds(410, 290, 90, 38);
-        Controls.AddRange(new Control[] { _chkMonth, _cmbMonth, _btnBrowse, _bar, _lblStatus, _btnDownload, _btnCancel });
+        // Definizione Colonne: Colonna 1 (Campo Principale), Colonna 2 (Spazio/Opzioni), Colonna 3 (Pulsante/Azione)
+        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F)); // Prende tutto lo spazio disponibile
+        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F)); // Larghezza fissa per il pulsante Sfoglia
 
-        // Le altezze di TextBox/ComboBox dipendono dal font (e dal DPI): si riallineano a ogni cambio
-        _txtPath.SizeChanged += (_, _) => AlignRows();
-        _cmbYear.SizeChanged += (_, _) => AlignRows();
-        AlignRows();
+        // 1. Info Telefono
+        mainLayout.Controls.Add(_lblPhone, 0, 0);
+        mainLayout.SetColumnSpan(_lblPhone, 3);
 
+        // 2. Anno e Mese
+        var periodPanel = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            Margin = new Padding(0, 5, 0, 10)
+        };
+        _chkMonth.Margin = new Padding(15, 4, 5, 0); // Allinea verticalmente la checkbox con la combobox
+        periodPanel.Controls.AddRange(new Control[] { _cmbYear, _chkMonth, _cmbMonth });
+
+        mainLayout.Controls.Add(new Label { Text = "Anno", AutoSize = true }, 0, 1);
+        mainLayout.Controls.Add(periodPanel, 0, 2);
+        mainLayout.SetColumnSpan(periodPanel, 3);
+
+        // 3. Percorso "Salva in" (TextBox + Pulsante Sfoglia)
+        mainLayout.Controls.Add(new Label { Text = "Salva in", AutoSize = true }, 0, 3);
+        mainLayout.Controls.Add(_txtPath, 0, 4);
+        mainLayout.SetColumnSpan(_txtPath, 2); // Occupa prima e seconda colonna
+        mainLayout.Controls.Add(_btnBrowse, 2, 4); // Sfoglia sta esattamente accanto nell'ultima colonna
+
+        // 4. Nome Cartella
+        mainLayout.Controls.Add(new Label { Text = "Nome cartella", AutoSize = true }, 0, 5);
+        mainLayout.Controls.Add(_txtName, 0, 6);
+        mainLayout.SetColumnSpan(_txtName, 3);
+
+        // 5. Barra e Pulsanti di Azione
+        var actionPanel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Bottom,
+            ColumnCount = 2,
+            RowCount = 3,
+            Margin = new Padding(0, 15, 0, 0),
+            AutoSize = true
+        };
+        actionPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        actionPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
+        actionPanel.Controls.Add(_bar, 0, 0);
+        actionPanel.SetColumnSpan(_bar, 2);
+        
+        actionPanel.Controls.Add(_lblStatus, 0, 1);
+        actionPanel.SetColumnSpan(_lblStatus, 2);
+
+        actionPanel.Controls.Add(_btnDownload, 0, 2);
+        actionPanel.Controls.Add(_btnCancel, 1, 2);
+
+        mainLayout.Controls.Add(actionPanel, 0, 7);
+        mainLayout.SetColumnSpan(actionPanel, 3);
+
+        Controls.Add(mainLayout);
+    }
+
+    private void RegisterEvents()
+    {
         _cmbYear.SelectedIndexChanged += (_, _) => OnPeriodChanged();
         _cmbMonth.SelectedIndexChanged += (_, _) => OnPeriodChanged();
         _chkMonth.CheckedChanged += (_, _) => OnPeriodChanged();
@@ -67,19 +132,17 @@ public class SelectionView : UserControl
         _btnCancel.Click += (_, e) => CancelClicked?.Invoke(this, e);
     }
 
-    // ---------- Comandi dalla form ----------
-
     public void SetDeviceName(string name) => _lblPhone.Text = $"Connesso: {name}";
-
     public void SetStatus(string text) => _lblStatus.Text = text;
 
     public void SetBusy(bool busy)
     {
         _cmbYear.Enabled = _chkMonth.Enabled = _cmbMonth.Enabled = _txtName.Enabled =
             _btnBrowse.Enabled = _btnDownload.Enabled = !busy;
+
         _btnCancel.Visible = busy;
-        _btnDownload.Width = busy ? 380 : 480;
         _bar.Visible = busy;
+
         if (!busy)
         {
             _bar.Style = ProgressBarStyle.Blocks;
@@ -98,28 +161,9 @@ public class SelectionView : UserControl
         _lblStatus.Text = $"Copia in corso... {value}/{max}";
     }
 
-    // ---------- Interno ----------
-
-    private void AddRow(string label, Control field, int top, int width)
-    {
-        Controls.Add(new Label { Text = label, AutoSize = true, Location = new Point(20, top) });
-        field.SetBounds(20, top + 24, width, 28);
-        Controls.Add(field);
-    }
-
-    /// <summary>Allinea Sfoglia alla barra del percorso e checkbox/mese alla riga dell'anno.</summary>
-    private void AlignRows()
-    {
-        _btnBrowse.SetBounds(400, _txtPath.Top, 100, _txtPath.Height);
-        _cmbMonth.Top = _cmbYear.Top;
-        _chkMonth.Top = _cmbYear.Top + (_cmbYear.Height - _chkMonth.Height) / 2;
-    }
-
     private void OnPeriodChanged()
     {
         _cmbMonth.Visible = _chkMonth.Checked;
-
-        // Aggiorna il nome della cartella solo se l'utente non l'ha personalizzato
         string newDefault = Period.DefaultFolderName;
         if (_txtName.Text == _lastDefaultName) _txtName.Text = newDefault;
         _lastDefaultName = newDefault;
