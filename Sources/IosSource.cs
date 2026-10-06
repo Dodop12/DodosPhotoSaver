@@ -54,7 +54,7 @@ public class IosSource : IPhotoSource
     private sealed class IosSession : IPhotoSession
     {
         private static readonly HashSet<string> AllowedExtensions =
-            new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png" }; // niente AAE, HEIC, MOV
+            new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".heic" }; 
 
         private const int MaxDepth = 12; // protezione da strutture di cartelle anomale
 
