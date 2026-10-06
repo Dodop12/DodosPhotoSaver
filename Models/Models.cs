@@ -1,6 +1,8 @@
 namespace DodosPhotoSaver.Models;
 
-public record DeviceInfo(string Id, string Name);
+public enum DevicePlatform { IOS, Android }
+
+public record DeviceInfo(string Id, string Name, DevicePlatform Platform);
 public record DownloadResult(int Copied, List<string> Errors);
 public record PhotoItem(string DevicePath, string Name, ulong Size);
 

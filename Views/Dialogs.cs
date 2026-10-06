@@ -2,6 +2,7 @@ using DodosPhotoSaver.Models;
 
 namespace DodosPhotoSaver.Views;
 
+/// <summary>Tutti i messaggi all'utente in un solo posto.</summary>
 public static class Dialogs
 {
     public static void Warning(IWin32Window owner, string text) =>
@@ -9,7 +10,7 @@ public static class Dialogs
 
     public static void Error(IWin32Window owner, string details) =>
         MessageBox.Show(owner,
-            "Si è verificato un errore. Controlla che l'iPhone sia collegato e sbloccato.\n\n" + details,
+            "Si è verificato un errore. Controlla che il telefono sia collegato e sbloccato.\n\n" + details,
             "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
     public static void NoPhotos(IWin32Window owner, Period period) =>

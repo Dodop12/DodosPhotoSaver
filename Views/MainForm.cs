@@ -3,9 +3,10 @@ using DodosPhotoSaver.Sources;
 
 namespace DodosPhotoSaver.Views;
 
+/// <summary>Finestra principale: alterna le due schermate e gestisce il flusso di download.</summary>
 public class MainForm : Form
 {
-    private readonly IPhotoSource _source = new IosSource(); // in futuro: scelta iOS / Android
+    private readonly IPhotoSource _source = new AutoDetectSource(); // riconosce da solo iPhone e Android
 
     private readonly ConnectView _connectView = new() { Dock = DockStyle.Fill };
     private readonly SelectionView _selectionView = new() { Dock = DockStyle.Fill, Visible = false };

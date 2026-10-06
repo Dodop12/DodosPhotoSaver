@@ -20,7 +20,7 @@ public class SafeFileNamer
         if (string.IsNullOrWhiteSpace(safeName) || safeName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
             throw new InvalidOperationException("Nome file non valido.");
 
-        // Due foto con lo stesso nome in cartelle diverse dell'iPhone: non sovrascrivere l'una con l'altra
+        // Due foto con lo stesso nome in cartelle diverse del telefono: non sovrascrivere l'una con l'altra
         string finalName = safeName;
         int n = 2;
         while (!_usedNames.Add(finalName))
