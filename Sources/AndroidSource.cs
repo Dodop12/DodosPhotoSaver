@@ -11,7 +11,9 @@ public class AndroidSource : IPhotoSource
     public DeviceInfo? FindDevice() =>
         MtpSession.FindFirst(d => !MtpSession.IsApple(d), DevicePlatform.Android, "Telefono Android");
 
-    public IPhotoSession Open(DeviceInfo device) => MtpSession.Open(device.Id, SkipDirectory);
+    // Android non implementa la data di creazione per le foto
+    public IPhotoSession Open(DeviceInfo device) =>
+        MtpSession.Open(device.Id, SkipDirectory, useModifiedDateOnly: true);
 
     /// <summary>
     /// Salta le cartelle nascoste (es. DCIM/.thumbnails, che contiene miniature e non foto vere)
