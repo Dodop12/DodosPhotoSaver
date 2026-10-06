@@ -3,7 +3,6 @@ using DodosPhotoSaver.Sources;
 
 namespace DodosPhotoSaver.Views;
 
-/// <summary>Finestra principale: alterna le due schermate e gestisce il flusso di download.</summary>
 public class MainForm : Form
 {
     private readonly IPhotoSource _source = new IosSource(); // in futuro: scelta iOS / Android
@@ -62,7 +61,7 @@ public class MainForm : Form
         }
 
         var device = _device;
-        int year = _selectionView.Year;
+        var period = _selectionView.Period;
         string parentDir = _selectionView.ParentDir;
         string folderName = _selectionView.FolderName;
 
@@ -80,17 +79,17 @@ public class MainForm : Form
             var photos = await Task.Run(() =>
             {
                 using var session = _source.Open(device);
-                return session.Scan(year, ct);
+                return session.Scan(period, ct);
             }, ct);
 
             if (photos.Count == 0)
             {
-                Dialogs.NoPhotos(this, year);
+                Dialogs.NoPhotos(this, period);
                 return;
             }
 
             // 3. Conferma nome, directory e numero di foto
-            if (!Dialogs.ConfirmDownload(this, photos.Count, year, folderName, parentDir)) return;
+            if (!Dialogs.ConfirmDownload(this, photos.Count, period, folderName, parentDir)) return;
 
             // 4. Cartella già esistente
             if (Directory.Exists(fullPath) && !Dialogs.ConfirmOverwrite(this, folderName, parentDir)) return;

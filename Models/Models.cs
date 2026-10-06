@@ -3,3 +3,20 @@ namespace DodosPhotoSaver.Models;
 public record DeviceInfo(string Id, string Name);
 public record DownloadResult(int Copied, List<string> Errors);
 public record PhotoItem(string DevicePath, string Name, ulong Size);
+
+public record Period(int Year, int? Month = null)
+{
+    public static readonly string[] MonthNames =
+    {
+        "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+        "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
+    };
+
+    // Es. "2026" oppure "Marzo 2026"
+    public string Label => Month is >= 1 and <= 12 ? $"{MonthNames[Month.Value - 1]} {Year}" : $"{Year}";
+
+    // Es. "Foto 2026" oppure "Foto Marzo 2026"
+    public string DefaultFolderName => $"Foto {Label}";
+
+    public bool Contains(DateTime date) => date.Year == Year && (Month is null || date.Month == Month);
+}

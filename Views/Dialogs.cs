@@ -2,7 +2,6 @@ using DodosPhotoSaver.Models;
 
 namespace DodosPhotoSaver.Views;
 
-/// <summary>Tutti i messaggi all'utente in un solo posto.</summary>
 public static class Dialogs
 {
     public static void Warning(IWin32Window owner, string text) =>
@@ -13,8 +12,8 @@ public static class Dialogs
             "Si è verificato un errore. Controlla che l'iPhone sia collegato e sbloccato.\n\n" + details,
             "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-    public static void NoPhotos(IWin32Window owner, int year) =>
-        MessageBox.Show(owner, $"Nessuna foto trovata per il {year}.", "Nessuna foto",
+    public static void NoPhotos(IWin32Window owner, Period period) =>
+        MessageBox.Show(owner, $"Nessuna foto trovata per: {period.Label}.", "Nessuna foto",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
 
     public static void NotEnoughSpace(IWin32Window owner) =>
@@ -25,9 +24,9 @@ public static class Dialogs
         MessageBox.Show(owner, "Operazione annullata.", "Annullato",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-    public static bool ConfirmDownload(IWin32Window owner, int count, int year, string folderName, string parentDir) =>
+    public static bool ConfirmDownload(IWin32Window owner, int count, Period period, string folderName, string parentDir) =>
         MessageBox.Show(owner,
-            $"Trovate {count} foto del {year}.\n\n" +
+            $"Trovate {count} foto ({period.Label}).\n\n" +
             $"Nome cartella: {folderName}\nPosizione: {parentDir}\n\nVuoi procedere?",
             "Conferma", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes;
 
