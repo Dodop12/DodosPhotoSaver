@@ -88,13 +88,12 @@ public sealed class MtpSession : IPhotoSession
 
     private void Walk(MediaDirectoryInfo dir, Period period, List<PhotoItem> result, int depth, CancellationToken ct)
     {
-        if (depth > MaxDepth) return;
-        ct.ThrowIfCancellationRequested();
+        if (depth > MaxDepth || ct.IsCancellationRequested) return;
 
         foreach (var file in dir.EnumerateFiles())
         {
             // La lettura dell'EXIF, quando serve, può richiedere tempo: si controlla l'annullamento a ogni file
-            ct.ThrowIfCancellationRequested();
+            if (ct.IsCancellationRequested) return;
 
             if (!AllowedExtensions.Contains(Path.GetExtension(file.Name))) continue;
 
@@ -104,6 +103,7 @@ public sealed class MtpSession : IPhotoSession
 
         foreach (var sub in dir.EnumerateDirectories())
         {
+            if (ct.IsCancellationRequested) return;
             if (_skipDirectory?.Invoke(dir.Name, sub.Name, depth) == true) continue;
             Walk(sub, period, result, depth + 1, ct);
         }
@@ -112,15 +112,9 @@ public sealed class MtpSession : IPhotoSession
     public void CopyTo(PhotoItem photo, string destFilePath)
         => _device.DownloadFile(photo.DevicePath, destFilePath);
 
-    public Task CopyToAsync(PhotoItem photo, string destFilePath, CancellationToken ct = default)
+    public Task CopyToAsync(PhotoItem photo, string destFilePath)
     {
-        return Task.Run(() =>
-        {
-            // Controlla l'annullamento prima di avviare il trasferimento del singolo file
-            ct.ThrowIfCancellationRequested();
-
-            _device.DownloadFile(photo.DevicePath, destFilePath);
-        }, ct);
+        return Task.Run(() => _device.DownloadFile(photo.DevicePath, destFilePath));
     }
 
     public void Dispose() => _device.Dispose();

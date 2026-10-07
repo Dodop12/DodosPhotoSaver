@@ -16,7 +16,7 @@ public static class PhotoDownloader
 
         for (int i = 0; i < photos.Count; i++)
         {
-            ct.ThrowIfCancellationRequested();
+            if (ct.IsCancellationRequested) break;
             var photo = photos[i];
             string? tempPath = null;
 
@@ -26,15 +26,11 @@ public static class PhotoDownloader
 
                 // Usa un identificatore univoco per il file temporaneo per evitare collisioni
                 tempPath = Path.Combine(destDir, $".dps_{Guid.NewGuid():N}.tmp");
-                await session.CopyToAsync(photo, tempPath, ct).ConfigureAwait(false);
+                await session.CopyToAsync(photo, tempPath).ConfigureAwait(false);
                 
                 File.Move(tempPath, target, overwrite: true);
                 tempPath = null;
                 copied++;
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
             }
             catch (Exception ex)
             {
@@ -50,7 +46,6 @@ public static class PhotoDownloader
 
             progress.Report(i + 1);
         }
-
         return new DownloadResult(copied, errors);
     }
 }

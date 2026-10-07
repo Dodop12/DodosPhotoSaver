@@ -85,6 +85,8 @@ public class MainForm : Form
                 return session.Scan(period, ct);
             }, ct);
 
+            ct.ThrowIfCancellationRequested();
+
             if (photos.Count == 0)
             {
                 Dialogs.NoPhotos(this, period);
@@ -114,6 +116,8 @@ public class MainForm : Form
                 using var session = _source.Open(device);
                 return await PhotoDownloader.DownloadAsync(session, photos, fullPath, progress, ct);
             }, ct);
+
+            ct.ThrowIfCancellationRequested();
 
             Dialogs.Completed(this, result, total, fullPath);
         }
