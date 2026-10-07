@@ -11,7 +11,7 @@ public class SelectionView : UserControl
     private readonly ComboBox _cmbMonth = new() { DropDownStyle = ComboBoxStyle.DropDownList, Visible = false, Width = 150 };
     private readonly CheckBox _chkOtherMedia = new()
     {
-        Text = "Includi immagini di app esterne",
+        Text = "Includi immagini provenienti da app esterne",
         AutoSize = true,
         Visible = false // si mostra solo se il telefono è Android
     };

@@ -93,12 +93,12 @@ public sealed class MtpSession : IPhotoSession
 
         foreach (var file in dir.EnumerateFiles())
         {
-            // Leggere l'EXIF richiede tempo: si controlla l'annullamento a ogni file
+            // La lettura dell'EXIF, quando serve, può richiedere tempo: si controlla l'annullamento a ogni file
             ct.ThrowIfCancellationRequested();
 
             if (!AllowedExtensions.Contains(Path.GetExtension(file.Name))) continue;
 
-            if (PhotoDateResolver.Resolve(file) is DateTime date && period.Contains(date))
+            if (PhotoDateResolver.IsInPeriod(file, period))
                 result.Add(new PhotoItem(file.FullName, file.Name, file.Length));
         }
 

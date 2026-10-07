@@ -23,5 +23,8 @@ public record Period(int Year, int? Month = null)
     // Es. "Foto 2026" oppure "Foto Marzo 2026"
     public string DefaultFolderName => $"Foto {Label}";
 
+    // Primo giorno del periodo (serve a scartare in fretta i file troppo vecchi)
+    public DateTime Start => new(Year, Month is >= 1 and <= 12 ? Month.Value : 1, 1);
+
     public bool Contains(DateTime date) => date.Year == Year && (Month is null || date.Month == Month);
 }

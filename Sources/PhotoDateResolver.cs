@@ -1,4 +1,5 @@
 using System.Globalization;
+using DodosPhotoSaver.Models;
 using MediaDevices;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
@@ -6,12 +7,16 @@ using MetadataExtractor.Formats.Exif;
 namespace DodosPhotoSaver.Sources;
 
 /// <summary>
-/// Ricava la data di una foto con la stessa logica per iPhone e Android, in ordine di affidabilità:
-/// EXIF → data di creazione → data nel nome file → data di modifica.
+/// Stabilisce se una foto appartiene a un periodo con la stessa logica per iPhone e Android.
+/// Aprire un file via MTP è costoso (può scaricarlo per intero), quindi si procede a livelli
+/// e si legge l'EXIF solo quando i dati già disponibili non bastano:
+///   1. data di creazione (iPhone) oppure data nel nome file → decisione immediata;
+///   2. data di modifica precedente al periodo → scartata (una foto non è scattata dopo l'ultima modifica);
+///   3. altrimenti EXIF, con la data di modifica come ultimo fallback.
 /// </summary>
 internal static class PhotoDateResolver
 {
-    // L'EXIF sta all'inizio del file: non serve scaricarlo tutto
+    // L'EXIF sta all'inizio del file: non serve leggerlo tutto
     private const int MaxMetadataBytes = 512 * 1024;
 
     private static readonly DateTime MinValidDate = new(1995, 1, 1);
@@ -30,11 +35,21 @@ internal static class PhotoDateResolver
         (10, "yyyy-MM-dd")
     };
 
-    public static DateTime? Resolve(MediaFileInfo file) =>
-        ReadExifDate(file)
-        ?? ValidDate(file.CreationTime)        // Android: sempre null, quindi viene saltata
-        ?? DateFromFileName(file.Name)         // prima della data di modifica, che cambia con copie/ripristini
-        ?? ValidDate(file.LastWriteTime);
+    public static bool IsInPeriod(MediaFileInfo file, Period period)
+    {
+        // Livello 1: dati già disponibili, nessuna lettura del file
+        // (su Android CreationTime è sempre null e viene semplicemente saltata)
+        if ((ValidDate(file.CreationTime) ?? DateFromFileName(file.Name)) is DateTime known)
+            return period.Contains(known);
+
+        // Livello 2: se è stata modificata prima del periodo, non può esserci scattata dentro
+        DateTime? modified = ValidDate(file.LastWriteTime);
+        if (modified is DateTime m && m < period.Start) return false;
+
+        // Livello 3: solo i casi rimasti incerti richiedono l'apertura del file
+        DateTime? taken = ReadExifDate(file) ?? modified;
+        return taken is DateTime t && period.Contains(t);
+    }
 
     private static DateTime? ReadExifDate(MediaFileInfo file)
     {
@@ -45,8 +60,9 @@ internal static class PhotoDateResolver
             CopyUpTo(source, buffer, MaxMetadataBytes);
             buffer.Position = 0;
 
-            var directories = ImageMetadataReader.ReadMetadata(buffer);
-            var exifDirs = directories.OfType<ExifDirectoryBase>().ToList();
+            var exifDirs = ImageMetadataReader.ReadMetadata(buffer)
+                .OfType<ExifDirectoryBase>()
+                .ToList();
 
             foreach (int tag in ExifDateTags)
                 foreach (var dir in exifDirs)
@@ -57,7 +73,7 @@ internal static class PhotoDateResolver
         }
         catch
         {
-            // Formato non supportato, file senza metadati o lettura MTP fallita: si passa ai fallback
+            // Formato non supportato, file senza metadati o lettura MTP fallita: si usa il fallback
             return null;
         }
     }
