@@ -17,7 +17,7 @@ public class SelectionView : UserControl
     };
 
     private readonly TextBox _txtPath = new() { ReadOnly = true, Dock = DockStyle.Fill };
-    private readonly Button _btnBrowse = new() { Text = "Sfoglia...", AutoSize = true, Anchor = AnchorStyles.Left | AnchorStyles.Right };
+    private readonly Button _btnBrowse = new() { Text = "Sfoglia...", Dock = DockStyle.Fill, Margin = new Padding(5, 2, 0, 2) };
     private readonly TextBox _txtName = new() { MaxLength = 100, Width = 300 };
 
     private readonly ProgressBar _bar = new() { Visible = false, Dock = DockStyle.Fill };
@@ -71,6 +71,8 @@ public class SelectionView : UserControl
         mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F)); // Prende tutto lo spazio disponibile
         mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F)); // Larghezza fissa per il pulsante Sfoglia
+
+        _lblPhone.Margin = new Padding(0, 0, 0, 12);
 
         // 1. Info Telefono
         mainLayout.Controls.Add(_lblPhone, 0, 0);
