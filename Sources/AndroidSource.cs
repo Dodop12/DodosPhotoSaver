@@ -11,16 +11,30 @@ public class AndroidSource : IPhotoSource
     public DeviceInfo? FindDevice() =>
         MtpSession.FindFirst(d => !MtpSession.IsApple(d), DevicePlatform.Android, "Telefono Android");
 
-    // Android non implementa la data di creazione per le foto
-    public IPhotoSession Open(DeviceInfo device) =>
-        MtpSession.Open(device.Id, SkipDirectory, useModifiedDateOnly: true);
+    public IPhotoSession Open(DeviceInfo device, ScanOptions? options = null)
+    {
+        bool includeOtherMedia = options?.IncludeOtherMedia ?? false;
+        return MtpSession.Open(device.Id,
+            (parentName, name, parentDepth) => SkipDirectory(parentName, name, parentDepth, includeOtherMedia));
+    }
 
     /// <summary>
-    /// Salta le cartelle nascoste (es. DCIM/.thumbnails, che contiene miniature e non foto vere)
-    /// e la cartella "Android" di primo livello (dati e cache delle app).
-    /// parentDepth: 0 = radice, 1 = memoria interna/scheda SD.
+    /// parentDepth: 0 = radice, 1 = memoria interna/scheda SD, 2 = cartelle di primo livello (DCIM, Android, ...).
+    /// - Sempre: salta le cartelle nascoste (es. DCIM/.thumbnails, che contiene miniature e non foto vere).
+    /// - Senza "altri media": scansiona solo DCIM (foto della fotocamera).
+    /// - Con "altri media": scansiona tutto (WhatsApp, Telegram, Download...), compresa Android/media,
+    ///   ma salta Android/data e Android/obb (dati e cache delle app).
     /// </summary>
-    private static bool SkipDirectory(string name, int parentDepth) =>
-        name.StartsWith('.') ||
-        (parentDepth == 1 && name.Equals("Android", StringComparison.OrdinalIgnoreCase));
+    private static bool SkipDirectory(string parentName, string name, int parentDepth, bool includeOtherMedia)
+    {
+        if (name.StartsWith('.')) return true;
+
+        if (!includeOtherMedia)
+            return parentDepth == 1 && !name.Equals("DCIM", StringComparison.OrdinalIgnoreCase);
+
+        return parentDepth == 2 &&
+               parentName.Equals("Android", StringComparison.OrdinalIgnoreCase) &&
+               (name.Equals("data", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("obb", StringComparison.OrdinalIgnoreCase));
+    }
 }

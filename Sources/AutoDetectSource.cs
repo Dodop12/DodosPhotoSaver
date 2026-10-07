@@ -10,10 +10,10 @@ public class AutoDetectSource : IPhotoSource
 
     public DeviceInfo? FindDevice() => _ios.FindDevice() ?? _android.FindDevice();
 
-    public IPhotoSession Open(DeviceInfo device) => device.Platform switch
+    public IPhotoSession Open(DeviceInfo device, ScanOptions? options = null) => device.Platform switch
     {
-        DevicePlatform.IOS => _ios.Open(device),
-        DevicePlatform.Android => _android.Open(device),
+        DevicePlatform.IOS => _ios.Open(device, options),
+        DevicePlatform.Android => _android.Open(device, options),
         _ => throw new NotSupportedException("Tipo di telefono non supportato.")
     };
 }

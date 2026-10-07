@@ -1,3 +1,4 @@
+using DodosPhotoSaver.Models;
 using DodosPhotoSaver.Services;
 using DodosPhotoSaver.Sources;
 
@@ -12,14 +13,14 @@ public class MainForm : Form
     private readonly SelectionView _selectionView = new() { Dock = DockStyle.Fill, Visible = false };
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 2000 };
 
-    private Models.DeviceInfo? _device;
+    private DeviceInfo? _device;
     private bool _busy;
     private CancellationTokenSource? _cts;
 
     public MainForm()
     {
         Text = "Dodo's Photo Saver";
-        ClientSize = new Size(520, 340);
+        ClientSize = new Size(520, 390);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
@@ -45,7 +46,7 @@ public class MainForm : Form
 
         _selectionView.Visible = connected;
         _connectView.Visible = !connected;
-        if (connected) _selectionView.SetDeviceName(_device!.Name);
+        if (connected) _selectionView.SetDevice(_device!);
     }
 
     private async Task RunDownloadAsync()
@@ -63,6 +64,7 @@ public class MainForm : Form
 
         var device = _device;
         var period = _selectionView.Period;
+        var scanOptions = new ScanOptions(_selectionView.IncludeOtherMedia);
         string parentDir = _selectionView.ParentDir;
         string folderName = _selectionView.FolderName;
 
@@ -79,7 +81,7 @@ public class MainForm : Form
             _selectionView.ShowMarquee();
             var photos = await Task.Run(() =>
             {
-                using var session = _source.Open(device);
+                using var session = _source.Open(device, scanOptions);
                 return session.Scan(period, ct);
             }, ct);
 
@@ -107,10 +109,10 @@ public class MainForm : Form
             _selectionView.ShowProgress(0, total);
             var progress = new Progress<int>(v => _selectionView.ShowProgress(v, total));
 
-            var result = await Task.Run(async () =>
+            var result = await Task.Run(() =>
             {
                 using var session = _source.Open(device);
-                return await PhotoDownloader.DownloadAsync(session, photos, fullPath, progress, ct);
+                return PhotoDownloader.DownloadAsync(session, photos, fullPath, progress, ct);
             }, ct);
 
             Dialogs.Completed(this, result, total, fullPath);

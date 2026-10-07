@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Text.RegularExpressions;
 using DodosPhotoSaver.Models;
 using MediaDevices;
 
@@ -18,14 +16,12 @@ public sealed class MtpSession : IPhotoSession
     private const int MaxDepth = 12; // protezione da strutture di cartelle anomale
 
     private readonly MediaDevice _device;
-    private readonly Func<string, int, bool>? _skipDirectory;
-    private readonly bool _useModifiedDateOnly;
+    private readonly Func<string, string, int, bool>? _skipDirectory;
 
-    private MtpSession(MediaDevice device, Func<string, int, bool>? skipDirectory, bool useModifiedDateOnly)
+    private MtpSession(MediaDevice device, Func<string, string, int, bool>? skipDirectory)
     {
         _device = device;
         _skipDirectory = skipDirectory;
-        _useModifiedDateOnly = useModifiedDateOnly;
     }
 
     internal static bool IsApple(MediaDevice d) =>
@@ -60,10 +56,10 @@ public sealed class MtpSession : IPhotoSession
         }
     }
 
-    /// <param name="skipDirectory">Riceve (nome sottocartella, profondità della cartella genitore); true = salta.</param>
-    /// <param name="useModifiedDateOnly">Android non espone la data di creazione: si usa solo quella di modifica.</param>
-    internal static MtpSession Open(string deviceId, Func<string, int, bool>? skipDirectory = null,
-            bool useModifiedDateOnly = false)
+    /// <param name="skipDirectory">
+    /// Riceve (nome cartella genitore, nome sottocartella, profondità della cartella genitore); true = salta.
+    /// </param>
+    internal static MtpSession Open(string deviceId, Func<string, string, int, bool>? skipDirectory = null)
     {
         var all = MediaDevice.GetDevices().ToList();
         var dev = all.FirstOrDefault(d => d.DeviceId == deviceId);
@@ -74,7 +70,7 @@ public sealed class MtpSession : IPhotoSession
         try
         {
             dev.Connect();
-            return new MtpSession(dev, skipDirectory, useModifiedDateOnly);
+            return new MtpSession(dev, skipDirectory);
         }
         catch
         {
@@ -97,41 +93,20 @@ public sealed class MtpSession : IPhotoSession
 
         foreach (var file in dir.EnumerateFiles())
         {
-            string ext = Path.GetExtension(file.Name);
-            bool isImage = AllowedExtensions.Contains(ext);
-            DateTime? date = isImage ? ResolveDate(file) : null;
+            // Leggere l'EXIF richiede tempo: si controlla l'annullamento a ogni file
+            ct.ThrowIfCancellationRequested();
 
-            if (isImage && date is DateTime d && period.Contains(d))
+            if (!AllowedExtensions.Contains(Path.GetExtension(file.Name))) continue;
+
+            if (PhotoDateResolver.Resolve(file) is DateTime date && period.Contains(date))
                 result.Add(new PhotoItem(file.FullName, file.Name, file.Length));
         }
 
         foreach (var sub in dir.EnumerateDirectories())
         {
-            if (_skipDirectory?.Invoke(sub.Name, depth) == true) continue;
+            if (_skipDirectory?.Invoke(dir.Name, sub.Name, depth) == true) continue;
             Walk(sub, period, result, depth + 1, ct);
         }
-    }
-
-    private DateTime? ResolveDate(MediaFileInfo file)
-    {
-        if (_useModifiedDateOnly) // Android: CreationTime è sempre null, si evita anche di leggerla
-            return ValidDate(file.LastWriteTime) ?? DateFromFileName(file.Name);
- 
-        return ValidDate(file.CreationTime) ?? ValidDate(file.LastWriteTime) ?? DateFromFileName(file.Name);
-    }
-
-    private static DateTime? ValidDate(DateTime? date) =>
-        date is DateTime d && d.Year >= 1995 && d <= DateTime.Now.AddDays(2) ? d : null;
-
-    private static readonly Regex FileNameDate =
-        new(@"(?<!\d)((?:19|20)\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(?!\d)", RegexOptions.Compiled);
- 
-    private static DateTime? DateFromFileName(string name)
-    {
-        var m = FileNameDate.Match(name);
-        return m.Success &&
-               DateTime.TryParseExact(m.Value, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d)
-            ? ValidDate(d) : null;
     }
 
     public void CopyTo(PhotoItem photo, string destFilePath)

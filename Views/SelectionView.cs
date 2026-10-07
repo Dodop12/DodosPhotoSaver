@@ -9,11 +9,17 @@ public class SelectionView : UserControl
     private readonly ComboBox _cmbYear = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 110 };
     private readonly CheckBox _chkMonth = new() { Text = "Mese specifico", AutoSize = true };
     private readonly ComboBox _cmbMonth = new() { DropDownStyle = ComboBoxStyle.DropDownList, Visible = false, Width = 150 };
-    
+    private readonly CheckBox _chkOtherMedia = new()
+    {
+        Text = "Includi immagini di app esterne",
+        AutoSize = true,
+        Visible = false // si mostra solo se il telefono è Android
+    };
+
     private readonly TextBox _txtPath = new() { ReadOnly = true, Dock = DockStyle.Fill };
-    private readonly Button _btnBrowse = new() { Text = "Sfoglia...", Dock = DockStyle.Fill, Margin = new Padding(5, 2, 0, 2) };
+    private readonly Button _btnBrowse = new() { Text = "Sfoglia...", AutoSize = true, Anchor = AnchorStyles.Left | AnchorStyles.Right };
     private readonly TextBox _txtName = new() { MaxLength = 100, Width = 300 };
-    
+
     private readonly ProgressBar _bar = new() { Visible = false, Dock = DockStyle.Fill };
     private readonly Label _lblStatus = new() { AutoSize = true, TextAlign = ContentAlignment.MiddleLeft };
     private readonly Button _btnDownload = new() { Text = "Scarica Foto", Height = 40, Dock = DockStyle.Fill };
@@ -27,6 +33,7 @@ public class SelectionView : UserControl
     public Period Period => new((int)_cmbYear.SelectedItem!, _chkMonth.Checked ? _cmbMonth.SelectedIndex + 1 : null);
     public string ParentDir => _txtPath.Text;
     public string FolderName => _txtName.Text.Trim();
+    public bool IncludeOtherMedia => _chkOtherMedia.Visible && _chkOtherMedia.Checked;
 
     public SelectionView()
     {
@@ -56,7 +63,7 @@ public class SelectionView : UserControl
             Dock = DockStyle.Fill,
             Padding = new Padding(15),
             ColumnCount = 3,
-            RowCount = 8,
+            RowCount = 9,
             AutoSize = true
         };
 
@@ -64,8 +71,6 @@ public class SelectionView : UserControl
         mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F)); // Prende tutto lo spazio disponibile
         mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F)); // Larghezza fissa per il pulsante Sfoglia
-
-        _lblPhone.Margin = new Padding(0, 0, 0, 12);
 
         // 1. Info Telefono
         mainLayout.Controls.Add(_lblPhone, 0, 0);
@@ -77,7 +82,7 @@ public class SelectionView : UserControl
             AutoSize = true,
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = false,
-            Margin = new Padding(0, 0, 0, 10)
+            Margin = new Padding(0, 5, 0, 10)
         };
         _chkMonth.Margin = new Padding(15, 4, 5, 0); // Allinea verticalmente la checkbox con la combobox
         periodPanel.Controls.AddRange(new Control[] { _cmbYear, _chkMonth, _cmbMonth });
@@ -86,18 +91,23 @@ public class SelectionView : UserControl
         mainLayout.Controls.Add(periodPanel, 0, 2);
         mainLayout.SetColumnSpan(periodPanel, 3);
 
-        // 3. Percorso "Salva in" (TextBox + Pulsante Sfoglia)
-        mainLayout.Controls.Add(new Label { Text = "Salva in", AutoSize = true }, 0, 3);
-        mainLayout.Controls.Add(_txtPath, 0, 4);
-        mainLayout.SetColumnSpan(_txtPath, 2); // Occupa prima e seconda colonna
-        mainLayout.Controls.Add(_btnBrowse, 2, 4); // Sfoglia sta esattamente accanto nell'ultima colonna
+        // 3. Solo Android: includere anche altre app
+        _chkOtherMedia.Margin = new Padding(3, 0, 3, 10);
+        mainLayout.Controls.Add(_chkOtherMedia, 0, 3);
+        mainLayout.SetColumnSpan(_chkOtherMedia, 3);
 
-        // 4. Nome Cartella
-        mainLayout.Controls.Add(new Label { Text = "Nome cartella", AutoSize = true }, 0, 5);
-        mainLayout.Controls.Add(_txtName, 0, 6);
+        // 4. Percorso "Salva in" (TextBox + Pulsante Sfoglia)
+        mainLayout.Controls.Add(new Label { Text = "Salva in", AutoSize = true }, 0, 4);
+        mainLayout.Controls.Add(_txtPath, 0, 5);
+        mainLayout.SetColumnSpan(_txtPath, 2); // Occupa prima e seconda colonna
+        mainLayout.Controls.Add(_btnBrowse, 2, 5); // Sfoglia sta esattamente accanto nell'ultima colonna
+
+        // 5. Nome Cartella
+        mainLayout.Controls.Add(new Label { Text = "Nome cartella", AutoSize = true }, 0, 6);
+        mainLayout.Controls.Add(_txtName, 0, 7);
         mainLayout.SetColumnSpan(_txtName, 3);
 
-        // 5. Barra e Pulsanti di Azione
+        // 6. Barra e Pulsanti di Azione
         var actionPanel = new TableLayoutPanel
         {
             Dock = DockStyle.Bottom,
@@ -111,14 +121,14 @@ public class SelectionView : UserControl
 
         actionPanel.Controls.Add(_bar, 0, 0);
         actionPanel.SetColumnSpan(_bar, 2);
-        
+
         actionPanel.Controls.Add(_lblStatus, 0, 1);
         actionPanel.SetColumnSpan(_lblStatus, 2);
 
         actionPanel.Controls.Add(_btnDownload, 0, 2);
         actionPanel.Controls.Add(_btnCancel, 1, 2);
 
-        mainLayout.Controls.Add(actionPanel, 0, 7);
+        mainLayout.Controls.Add(actionPanel, 0, 8);
         mainLayout.SetColumnSpan(actionPanel, 3);
 
         Controls.Add(mainLayout);
@@ -134,12 +144,17 @@ public class SelectionView : UserControl
         _btnCancel.Click += (_, e) => CancelClicked?.Invoke(this, e);
     }
 
-    public void SetDeviceName(string name) => _lblPhone.Text = $"Connesso: {name}";
+    public void SetDevice(DeviceInfo device)
+    {
+        _lblPhone.Text = $"Connesso: {device.Name}";
+        _chkOtherMedia.Visible = device.Platform == DevicePlatform.Android;
+    }
+
     public void SetStatus(string text) => _lblStatus.Text = text;
 
     public void SetBusy(bool busy)
     {
-        _cmbYear.Enabled = _chkMonth.Enabled = _cmbMonth.Enabled = _txtName.Enabled =
+        _cmbYear.Enabled = _chkMonth.Enabled = _cmbMonth.Enabled = _chkOtherMedia.Enabled = _txtName.Enabled =
             _btnBrowse.Enabled = _btnDownload.Enabled = !busy;
 
         _btnCancel.Visible = busy;

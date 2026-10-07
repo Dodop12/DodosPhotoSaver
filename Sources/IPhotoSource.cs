@@ -5,7 +5,7 @@ namespace DodosPhotoSaver.Sources;
 public interface IPhotoSource
 {
     DeviceInfo? FindDevice();
-    IPhotoSession Open(DeviceInfo device); // Apre una connessione al telefono
+    IPhotoSession Open(DeviceInfo device, ScanOptions? options = null); // Apre una connessione al telefono
 }
 
 /// <summary>Connessione aperta a un telefono.</summary>
