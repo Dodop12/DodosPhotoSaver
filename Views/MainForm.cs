@@ -107,10 +107,10 @@ public class MainForm : Form
             _selectionView.ShowProgress(0, total);
             var progress = new Progress<int>(v => _selectionView.ShowProgress(v, total));
 
-            var result = await Task.Run(() =>
+            var result = await Task.Run(async () =>
             {
                 using var session = _source.Open(device);
-                return PhotoDownloader.DownloadAsync(session, photos, fullPath, progress, ct);
+                return await PhotoDownloader.DownloadAsync(session, photos, fullPath, progress, ct);
             }, ct);
 
             Dialogs.Completed(this, result, total, fullPath);
