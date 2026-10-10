@@ -6,37 +6,45 @@ namespace DodosPhotoSaver.Views;
 public static class Dialogs
 {
     public static void Warning(IWin32Window owner, string text) =>
-        MessageBox.Show(owner, text, "Controlla i dati", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        Show(owner, "Controlla i dati", text, MessageBoxIcon.Warning);
 
     public static void Error(IWin32Window owner, string details) =>
-        MessageBox.Show(owner,
-            "Si è verificato un errore. Controlla che il telefono sia collegato e sbloccato.\n\n" + details,
-            "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        Show(owner, "Errore",
+            $"Si è verificato un errore:\n\n{details}\n\n" +
+            "Se il problema persiste, controlla che il telefono sia collegato e sbloccato.",
+            MessageBoxIcon.Error);
 
     public static void NoPhotos(IWin32Window owner, Period period) =>
-        MessageBox.Show(owner, $"Nessuna foto trovata per: {period.Label}.", "Nessuna foto",
-            MessageBoxButtons.OK, MessageBoxIcon.Information);
+        Show(owner, "Nessuna foto", $"Nessuna foto trovata per: {period.Label}.", MessageBoxIcon.Information);
 
     public static void NotEnoughSpace(IWin32Window owner) =>
-        MessageBox.Show(owner, "Spazio insufficiente sul disco di destinazione.", "Spazio insufficiente",
-            MessageBoxButtons.OK, MessageBoxIcon.Error);
+        Show(owner, "Spazio insufficiente", "Spazio insufficiente sul disco di destinazione.", MessageBoxIcon.Error);
+
+    public static void SpaceCheckFailed(IWin32Window owner) =>
+        Show(owner, "Verifica spazio non riuscita",
+            "Impossibile verificare lo spazio disponibile sul disco di destinazione.\n\n" +
+            "Controlla che la cartella sia accessibile e riprova.",
+            MessageBoxIcon.Error);
 
     public static void Cancelled(IWin32Window owner) =>
-        MessageBox.Show(owner, "Operazione annullata.", "Annullato",
-            MessageBoxButtons.OK, MessageBoxIcon.Information);
+        Show(owner, "Annullato", "Operazione annullata.", MessageBoxIcon.Information);
+
 
     public static bool ConfirmDownload(IWin32Window owner, int count, Period period, string folderName, string parentDir) =>
-        MessageBox.Show(owner,
+        Ask(owner, "Conferma",
             $"Trovate {count} foto ({period.Label}).\n\n" +
-            $"Nome cartella: {folderName}\nPosizione: {parentDir}\n\nVuoi procedere?",
-            "Conferma", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes;
-
+            $"Nome cartella: {folderName}\nPosizione: {parentDir}\n\nVuoi procedere?");
+ 
     public static bool ConfirmOverwrite(IWin32Window owner, string folderName, string parentDir) =>
-        MessageBox.Show(owner,
-            $"La cartella \"{folderName}\" esiste già in:\n{parentDir}\n\n" +
+        Ask(owner, "Cartella già esistente",
+             $"La cartella \"{folderName}\" esiste già in:\n{parentDir}\n\n" +
             "Le foto con lo stesso nome verranno SOSTITUITE.\nVuoi continuare?",
-            "Cartella già esistente", MessageBoxButtons.YesNo, MessageBoxIcon.Warning,
-            MessageBoxDefaultButton.Button2) == DialogResult.Yes;
+            MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
+ 
+    public static bool ConfirmExit(IWin32Window owner) =>
+        Ask(owner, "Copia in corso",
+            "Una copia è in corso. Vuoi interromperla e chiudere il programma?",
+            MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
 
     public static void Completed(IWin32Window owner, DownloadResult result, int total, string fullPath)
     {
@@ -47,4 +55,13 @@ public static class Dialogs
         MessageBox.Show(owner, msg, "Completato", MessageBoxButtons.OK,
             result.Errors.Count == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
     }
+
+
+    private static void Show(IWin32Window owner, string title, string text, MessageBoxIcon icon) =>
+        MessageBox.Show(owner, text, title, MessageBoxButtons.OK, icon);
+
+    private static bool Ask(IWin32Window owner, string title, string text,
+            MessageBoxIcon icon = MessageBoxIcon.Question,
+            MessageBoxDefaultButton defaultButton = MessageBoxDefaultButton.Button1) =>
+        MessageBox.Show(owner, text, title, MessageBoxButtons.YesNo, icon, defaultButton) == DialogResult.Yes;
 }

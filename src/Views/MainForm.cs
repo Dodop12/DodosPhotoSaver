@@ -7,7 +7,9 @@ namespace DodosPhotoSaver.Views;
 /// <summary>Finestra principale: alterna le due schermate e gestisce il flusso di download.</summary>
 public class MainForm : Form
 {
-    private readonly IPhotoSource _source = new AutoDetectSource(); // riconosce da solo iPhone e Android
+    private static readonly Size WindowSize = new(520, 390);
+
+    private readonly IPhotoSource _source; // riconosce da solo iPhone e Android
 
     private readonly ConnectView _connectView = new() { Dock = DockStyle.Fill };
     private readonly SelectionView _selectionView = new() { Dock = DockStyle.Fill, Visible = false };
@@ -17,14 +19,15 @@ public class MainForm : Form
     private bool _busy;
     private CancellationTokenSource? _cts;
 
-    public MainForm()
+    public MainForm(IPhotoSource source)
     {
+        _source = source;
+
         Text = "Dodo's Photo Saver";
-        ClientSize = new Size(520, 390);
+        ClientSize = WindowSize;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
-        Font = new Font("Segoe UI", 10f);
 
         Controls.Add(_selectionView);
         Controls.Add(_connectView);
@@ -46,16 +49,18 @@ public class MainForm : Form
 
         _selectionView.Visible = connected;
         _connectView.Visible = !connected;
-        if (connected) _selectionView.SetDevice(_device!);
+        if (connected) _selectionView.SetDeviceName(_device!);
     }
 
     private async Task RunDownloadAsync()
     {
         if (_device == null) return;
 
-        // 1. Validazione input
         string? error = FolderNameValidator.Validate(
-            _selectionView.ParentDir, _selectionView.FolderName, out string fullPath);
+            _selectionView.ParentDir,
+            _selectionView.FolderName,
+            out string fullPath
+        );
         if (error != null)
         {
             Dialogs.Warning(this, error);
@@ -63,7 +68,7 @@ public class MainForm : Form
         }
 
         var device = _device;
-        var period = _selectionView.Period;
+        var period = _selectionView.SelectedPeriod;
         var scanOptions = new ScanOptions(_selectionView.IncludeOtherMedia);
         string parentDir = _selectionView.ParentDir;
         string folderName = _selectionView.FolderName;
@@ -76,7 +81,7 @@ public class MainForm : Form
             _busy = true;
             _selectionView.SetBusy(true);
 
-            // 2. Ricerca foto
+            // Ricerca foto
             _selectionView.SetStatus("Ricerca foto in corso...");
             _selectionView.ShowMarquee();
             var photos = await Task.Run(() =>
@@ -84,7 +89,6 @@ public class MainForm : Form
                 using var session = _source.Open(device, scanOptions);
                 return session.Scan(period, ct);
             }, ct);
-
             ct.ThrowIfCancellationRequested();
 
             if (photos.Count == 0)
@@ -93,20 +97,34 @@ public class MainForm : Form
                 return;
             }
 
-            // 3. Conferma nome, directory e numero di foto
+            // Conferma nome, directory e numero di foto
             if (!Dialogs.ConfirmDownload(this, photos.Count, period, folderName, parentDir)) return;
 
-            // 4. Cartella già esistente
+            // Cartella già esistente
             if (Directory.Exists(fullPath) && !Dialogs.ConfirmOverwrite(this, folderName, parentDir)) return;
 
-            // 5. Spazio su disco
-            if (!DiskSpaceChecker.HasEnoughSpace(parentDir, photos))
+            // Spazio su disco insufficiente
+            ulong totalBytes = 0;
+            foreach (var p in photos)
             {
-                Dialogs.NotEnoughSpace(this);
+                totalBytes += p.Size;
+            }
+            
+            try
+            {
+                if (!DiskSpaceChecker.HasEnoughSpace(parentDir, totalBytes))
+                {
+                    Dialogs.NotEnoughSpace(this);
+                    return;
+                }
+            }
+            catch (IOException)
+            {
+                Dialogs.SpaceCheckFailed(this);
                 return;
             }
 
-            // 6. Copia
+            // Copia foto
             int total = photos.Count;
             _selectionView.ShowProgress(0, total);
             var progress = new Progress<int>(v => _selectionView.ShowProgress(v, total));
@@ -116,10 +134,9 @@ public class MainForm : Form
                 using var session = _source.Open(device);
                 return await PhotoDownloader.DownloadAsync(session, photos, fullPath, progress, ct);
             }, ct);
-
             ct.ThrowIfCancellationRequested();
 
-            Dialogs.Completed(this, result, total, fullPath);
+            Dialogs.Completed(this, result, total, fullPath); // Riepilogo risultato
         }
         catch (OperationCanceledException)
         {

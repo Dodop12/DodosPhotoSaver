@@ -9,6 +9,9 @@
     <AssemblyName>DodosPhotoSaver</AssemblyName>
     <Product>Dodo's Photo Saver</Product>
     <Version>1.0.0</Version>
+
+    <ApplicationDefaultFont>Segoe UI, 10pt</ApplicationDefaultFont>
+    <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
   </PropertyGroup>
 
   <ItemGroup>

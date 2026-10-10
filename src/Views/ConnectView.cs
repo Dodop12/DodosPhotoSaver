@@ -18,7 +18,7 @@ public class ConnectView : UserControl
             Dock = DockStyle.Bottom,
             Height = 60,
             TextAlign = ContentAlignment.MiddleCenter,
-            ForeColor = Color.Gray
+            ForeColor = SystemColors.GrayText
         });
     }
 }

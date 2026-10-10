@@ -45,7 +45,8 @@ public class AndroidSource : IPhotoSource
         MtpSession.FindFirst(
             d => !MtpSession.IsApple(d),
             DevicePlatform.Android,
-            "Telefono Android");
+            "Telefono Android"
+        );
 
     public IPhotoSession Open(
         DeviceInfo device,
@@ -61,7 +62,9 @@ public class AndroidSource : IPhotoSource
                     parentName,
                     name,
                     parentDepth,
-                    includeOtherMedia));
+                    includeOtherMedia
+                )
+        );
     }
 
     /// <summary> Determina se una directory deve essere esclusa dalla scansione. </summary>
@@ -115,7 +118,8 @@ public class AndroidSource : IPhotoSource
             {
                 if (name.Contains(
                         keyword,
-                        StringComparison.OrdinalIgnoreCase))
+                        StringComparison.OrdinalIgnoreCase
+                    ))
                 {
                     return true;
                 }

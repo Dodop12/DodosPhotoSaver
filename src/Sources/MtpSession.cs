@@ -61,20 +61,20 @@ public sealed class MtpSession : IPhotoSession
     /// </param>
     internal static MtpSession Open(string deviceId, Func<string, string, int, bool>? skipDirectory = null)
     {
-        var all = MediaDevice.GetDevices().ToList();
-        var dev = all.FirstOrDefault(d => d.DeviceId == deviceId);
-        foreach (var other in all.Where(d => d != dev)) other.Dispose();
+        var allDevices = MediaDevice.GetDevices().ToList();
+        var device = allDevices.FirstOrDefault(d => d.DeviceId == deviceId);
+        foreach (var other in allDevices.Where(d => d != device)) other.Dispose();
 
-        if (dev == null) throw new InvalidOperationException("Telefono non trovato. Controlla il collegamento.");
+        if (device == null) throw new InvalidOperationException("Telefono non trovato. Controlla il collegamento.");
 
         try
         {
-            dev.Connect();
-            return new MtpSession(dev, skipDirectory);
+            device.Connect();
+            return new MtpSession(device, skipDirectory);
         }
         catch
         {
-            dev.Dispose();
+            device.Dispose();
             throw;
         }
     }
@@ -88,24 +88,29 @@ public sealed class MtpSession : IPhotoSession
 
     private void Walk(MediaDirectoryInfo dir, Period period, List<PhotoItem> result, int depth, CancellationToken ct)
     {
-        if (depth > MaxDepth || ct.IsCancellationRequested) return;
+        if (depth > MaxDepth || ct.IsCancellationRequested)
+            return;
 
         foreach (var file in dir.EnumerateFiles())
         {
-            // La lettura dell'EXIF, quando serve, può richiedere tempo: si controlla l'annullamento a ogni file
+            // Si controlla l'annullamento a ogni file
             if (ct.IsCancellationRequested) return;
 
-            if (!AllowedExtensions.Contains(Path.GetExtension(file.Name))) continue;
-
-            if (PhotoDateResolver.IsInPeriod(file, period))
+            if (AllowedExtensions.Contains(Path.GetExtension(file.Name)) &&
+                    PhotoDateResolver.IsInPeriod(file, period))
+            {
                 result.Add(new PhotoItem(file.FullName, file.Name, file.Length));
-        }
+            }
 
-        foreach (var sub in dir.EnumerateDirectories())
-        {
-            if (ct.IsCancellationRequested) return;
-            if (_skipDirectory?.Invoke(dir.Name, sub.Name, depth) == true) continue;
-            Walk(sub, period, result, depth + 1, ct);
+            foreach (var sub in dir.EnumerateDirectories())
+            {
+                if (ct.IsCancellationRequested) return;
+
+                if (_skipDirectory?.Invoke(dir.Name, sub.Name, depth) != true)
+                {
+                    Walk(sub, period, result, depth + 1, ct);
+                }
+            }
         }
     }
 

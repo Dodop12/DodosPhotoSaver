@@ -10,13 +10,16 @@ public static class PhotoDownloader
             IProgress<int> progress, CancellationToken ct)
     {
         Directory.CreateDirectory(destDir); // Create the folder if it does not already exist
+        
         var namer = new SafeFileNamer(destDir);
         var errors = new List<string>();
         int copied = 0;
 
         for (int i = 0; i < photos.Count; i++)
         {
-            if (ct.IsCancellationRequested) break;
+            if (ct.IsCancellationRequested)
+                return new DownloadResult(copied, errors);
+
             var photo = photos[i];
             string? tempPath = null;
 
