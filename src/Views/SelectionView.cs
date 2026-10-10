@@ -20,6 +20,7 @@ public class SelectionView : UserControl
         AutoSize = true,
         Visible = false // si mostra solo se il telefono è Android
     };
+    private readonly CheckBox _chkVideos = new() { Text = "Includi video", AutoSize = true };
 
     private readonly TextBox _txtPath = new() { ReadOnly = true, Dock = DockStyle.Fill };
     private readonly Button _btnBrowse = new() { Text = "Sfoglia...", Dock = DockStyle.Fill, Margin = new Padding(5, 2, 0, 2) };
@@ -39,6 +40,7 @@ public class SelectionView : UserControl
     public string ParentDir => _txtPath.Text;
     public string FolderName => _txtDestFolder.Text.Trim();
     public bool IncludeOtherMedia => _chkOtherMedia.Visible && _chkOtherMedia.Checked;
+    public bool IncludeVideos => _chkVideos.Checked;
 
     public SelectionView()
     {
@@ -68,7 +70,7 @@ public class SelectionView : UserControl
             Dock = DockStyle.Fill,
             Padding = new Padding(ContentPadding),
             ColumnCount = 3,
-            RowCount = 9,
+            RowCount = 10,
             AutoSize = true
         };
 
@@ -103,15 +105,19 @@ public class SelectionView : UserControl
         mainLayout.Controls.Add(_chkOtherMedia, 0, 3);
         mainLayout.SetColumnSpan(_chkOtherMedia, 3);
 
+        _chkVideos.Margin = new Padding(3, 0, 3, 10);
+        mainLayout.Controls.Add(_chkVideos, 0, 4);
+        mainLayout.SetColumnSpan(_chkVideos, 3);
+
         // Percorso "Salva in" (TextBox + Pulsante Sfoglia)
-        mainLayout.Controls.Add(new Label { Text = "Salva in", AutoSize = true }, 0, 4);
-        mainLayout.Controls.Add(_txtPath, 0, 5);
+        mainLayout.Controls.Add(new Label { Text = "Salva in", AutoSize = true }, 0, 5);
+        mainLayout.Controls.Add(_txtPath, 0, 6);
         mainLayout.SetColumnSpan(_txtPath, 2); // Occupa prima e seconda colonna
-        mainLayout.Controls.Add(_btnBrowse, 2, 5);
+        mainLayout.Controls.Add(_btnBrowse, 2, 6);
         
         // Cartella di destinazione
-        mainLayout.Controls.Add(new Label { Text = "Nome cartella", AutoSize = true }, 0, 6);
-        mainLayout.Controls.Add(_txtDestFolder, 0, 7);
+        mainLayout.Controls.Add(new Label { Text = "Nome cartella", AutoSize = true }, 0, 7);
+        mainLayout.Controls.Add(_txtDestFolder, 0, 8);
         mainLayout.SetColumnSpan(_txtDestFolder, 3);
 
         // Barra e Pulsanti di Azione
@@ -135,7 +141,7 @@ public class SelectionView : UserControl
         actionPanel.Controls.Add(_btnDownload, 0, 2);
         actionPanel.Controls.Add(_btnCancel, 1, 2);
 
-        mainLayout.Controls.Add(actionPanel, 0, 8);
+        mainLayout.Controls.Add(actionPanel, 0, 9);
         mainLayout.SetColumnSpan(actionPanel, 3);
 
         Controls.Add(mainLayout);
@@ -162,7 +168,7 @@ public class SelectionView : UserControl
 
     public void SetBusy(bool busy)
     {
-        foreach (var c in new Control[] { _cmbYear, _chkMonth, _cmbMonth, _txtDestFolder, _btnBrowse })
+        foreach (var c in new Control[] { _cmbYear, _chkMonth, _cmbMonth, _chkOtherMedia, _chkVideos, _txtDestFolder, _btnBrowse, _btnDownload })
             c.Enabled = !busy;
 
         _btnCancel.Visible = busy;

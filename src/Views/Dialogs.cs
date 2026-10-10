@@ -15,7 +15,7 @@ public static class Dialogs
             MessageBoxIcon.Error);
 
     public static void NoPhotos(IWin32Window owner, Period period) =>
-        Show(owner, "Nessuna foto", $"Nessuna foto trovata per: {period.Label}.", MessageBoxIcon.Information);
+        Show(owner, "Nessun file trovato", $"Nessun file trovato per: {period.Label}.", MessageBoxIcon.Information);
 
     public static void NotEnoughSpace(IWin32Window owner) =>
         Show(owner, "Spazio insufficiente", "Spazio insufficiente sul disco di destinazione.", MessageBoxIcon.Error);
@@ -32,13 +32,13 @@ public static class Dialogs
 
     public static bool ConfirmDownload(IWin32Window owner, int count, Period period, string folderName, string parentDir) =>
         Ask(owner, "Conferma",
-            $"Trovate {count} foto ({period.Label}).\n\n" +
+            $"Trovati {count} file ({period.Label}).\n\n" +
             $"Nome cartella: {folderName}\nPosizione: {parentDir}\n\nVuoi procedere?");
  
     public static bool ConfirmOverwrite(IWin32Window owner, string folderName, string parentDir) =>
         Ask(owner, "Cartella già esistente",
              $"La cartella \"{folderName}\" esiste già in:\n{parentDir}\n\n" +
-            "Le foto con lo stesso nome verranno SOSTITUITE.\nVuoi continuare?",
+            "I file con lo stesso nome verranno SOSTITUITI.\nVuoi continuare?",
             MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
  
     public static bool ConfirmExit(IWin32Window owner) =>
@@ -48,7 +48,7 @@ public static class Dialogs
 
     public static void Completed(IWin32Window owner, DownloadResult result, int total, string fullPath)
     {
-        string msg = $"Copiate {result.Copied} foto su {total}.\nCartella: {fullPath}";
+        string msg = $"Copiati {result.Copied} file su {total}.\nCartella: {fullPath}";
         if (result.Errors.Count > 0)
             msg += $"\n\n{result.Errors.Count} errori, ad esempio:\n" + string.Join("\n", result.Errors.Take(5));
 

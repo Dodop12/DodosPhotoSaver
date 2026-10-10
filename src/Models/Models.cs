@@ -7,7 +7,7 @@ public record DownloadResult(int Copied, List<string> Errors);
 public record PhotoItem(string DevicePath, string Name, ulong Size);
 
 /// <summary>Opzioni di ricerca. IncludeOtherMedia ha effetto solo su Android (WhatsApp, Telegram, ecc.).</summary>
-public record ScanOptions(bool IncludeOtherMedia = false);
+public record ScanOptions(bool IncludeOtherMedia = false, bool IncludeVideos = false);
 
 public record Period(int Year, int? Month = null)
 {

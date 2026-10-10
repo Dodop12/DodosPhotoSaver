@@ -10,17 +10,22 @@ namespace DodosPhotoSaver.Sources;
 /// </summary>
 public sealed class MtpSession : IPhotoSession
 {
-    private static readonly HashSet<string> AllowedExtensions =
+    private static readonly HashSet<string> PhotoExtensions =
             new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".heic" };
+
+    private static readonly HashSet<string> VideoExtensions =
+            new(StringComparer.OrdinalIgnoreCase) { ".3gp", ".avi", ".m4v", ".mkv", ".mov", ".mp4", ".webm" };
 
     private const int MaxDepth = 12; // protezione da strutture di cartelle anomale
 
     private readonly MediaDevice _device;
     private readonly Func<string, string, int, bool>? _skipDirectory;
+    private readonly bool _includeVideos;
 
-    private MtpSession(MediaDevice device, Func<string, string, int, bool>? skipDirectory)
+    private MtpSession(MediaDevice device, bool includeVideos, Func<string, string, int, bool>? skipDirectory)
     {
         _device = device;
+        _includeVideos = includeVideos;
         _skipDirectory = skipDirectory;
     }
 
@@ -59,7 +64,10 @@ public sealed class MtpSession : IPhotoSession
     /// <param name="skipDirectory">
     /// Riceve (nome cartella genitore, nome sottocartella, profondità della cartella genitore); true = salta.
     /// </param>
-    internal static MtpSession Open(string deviceId, Func<string, string, int, bool>? skipDirectory = null)
+    internal static MtpSession Open(
+        string deviceId,
+        bool includeVideos = false,
+        Func<string, string, int, bool>? skipDirectory = null)
     {
         var allDevices = MediaDevice.GetDevices().ToList();
         var device = allDevices.FirstOrDefault(d => d.DeviceId == deviceId);
@@ -70,7 +78,7 @@ public sealed class MtpSession : IPhotoSession
         try
         {
             device.Connect();
-            return new MtpSession(device, skipDirectory);
+            return new MtpSession(device, includeVideos, skipDirectory);
         }
         catch
         {
@@ -96,20 +104,22 @@ public sealed class MtpSession : IPhotoSession
             // Si controlla l'annullamento a ogni file
             if (ct.IsCancellationRequested) return;
 
-            if (AllowedExtensions.Contains(Path.GetExtension(file.Name)) &&
-                    PhotoDateResolver.IsInPeriod(file, period))
+            string extension = Path.GetExtension(file.Name);
+            bool isVideo = _includeVideos && VideoExtensions.Contains(extension);
+            if ((PhotoExtensions.Contains(extension) || isVideo) &&
+                    PhotoDateResolver.IsInPeriod(file, period, isVideo))
             {
                 result.Add(new PhotoItem(file.FullName, file.Name, file.Length));
             }
+        }
 
-            foreach (var sub in dir.EnumerateDirectories())
+        foreach (var sub in dir.EnumerateDirectories())
+        {
+            if (ct.IsCancellationRequested) return;
+
+            if (_skipDirectory?.Invoke(dir.Name, sub.Name, depth) != true)
             {
-                if (ct.IsCancellationRequested) return;
-
-                if (_skipDirectory?.Invoke(dir.Name, sub.Name, depth) != true)
-                {
-                    Walk(sub, period, result, depth + 1, ct);
-                }
+                Walk(sub, period, result, depth + 1, ct);
             }
         }
     }

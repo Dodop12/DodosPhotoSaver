@@ -69,7 +69,7 @@ public class MainForm : Form
 
         var device = _device;
         var period = _selectionView.SelectedPeriod;
-        var scanOptions = new ScanOptions(_selectionView.IncludeOtherMedia);
+        var scanOptions = new ScanOptions(_selectionView.IncludeOtherMedia, _selectionView.IncludeVideos);
         string parentDir = _selectionView.ParentDir;
         string folderName = _selectionView.FolderName;
 
@@ -81,8 +81,7 @@ public class MainForm : Form
             _busy = true;
             _selectionView.SetBusy(true);
 
-            // Ricerca foto
-            _selectionView.SetStatus("Ricerca foto in corso...");
+            _selectionView.SetStatus("Ricerca in corso...");
             _selectionView.ShowMarquee();
             var photos = await Task.Run(() =>
             {

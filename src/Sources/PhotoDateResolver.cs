@@ -35,7 +35,7 @@ internal static class PhotoDateResolver
         (10, "yyyy-MM-dd")
     };
 
-    public static bool IsInPeriod(MediaFileInfo file, Period period)
+    public static bool IsInPeriod(MediaFileInfo file, Period period, bool isVideo = false)
     {
         // Livello 1: dati già disponibili, nessuna lettura del file
         // (su Android CreationTime è sempre null e viene semplicemente saltata)
@@ -47,7 +47,7 @@ internal static class PhotoDateResolver
         if (modified is DateTime m && m < period.Start) return false;
 
         // Livello 3: solo i casi rimasti incerti richiedono l'apertura del file
-        DateTime? taken = ReadExifDate(file) ?? modified;
+        DateTime? taken = (isVideo ? null : ReadExifDate(file)) ?? modified;
         return taken is DateTime t && period.Contains(t);
     }
 

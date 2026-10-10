@@ -54,9 +54,12 @@ public class AndroidSource : IPhotoSource
     {
         bool includeOtherMedia =
             options?.IncludeOtherMedia ?? false;
+        bool includeVideos =
+            options?.IncludeVideos ?? false;
 
         return MtpSession.Open(
             device.Id,
+            includeVideos,
             (parentName, name, parentDepth) =>
                 SkipDirectory(
                     parentName,
