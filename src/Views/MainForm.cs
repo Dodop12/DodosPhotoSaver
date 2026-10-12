@@ -17,6 +17,7 @@ public class MainForm : Form
 
     private DeviceInfo? _device;
     private bool _busy;
+    private bool _refreshing;
     private CancellationTokenSource? _cts;
 
     public MainForm(IPhotoSource source)
@@ -33,51 +34,60 @@ public class MainForm : Form
         Controls.Add(_connectView);
 
         _selectionView.DownloadClicked += async (_, _) => await RunDownloadAsync();
-        _selectionView.CancelClicked += (_, _) => _cts?.Cancel();
+        _selectionView.CancelClicked += (_, _) =>
+        {
+            _selectionView.SetStatus("Annullamento in corso...");
+            _cts?.Cancel();
+        };
 
         _timer.Tick += (_, _) => RefreshConnection();
         _timer.Start();
         RefreshConnection();
     }
 
-    private void RefreshConnection()
+    private async void RefreshConnection()
     {
-        if (_busy) return;
+        if (_busy || _refreshing) return;
+        _refreshing = true;
+        try
+        {
+            var device = await Task.Run(_source.FindDevice);
+            if (_busy || IsDisposed) return;
 
-        _device = _source.FindDevice();
-        bool connected = _device != null;
-
-        _selectionView.Visible = connected;
-        _connectView.Visible = !connected;
-        if (connected) _selectionView.SetDeviceName(_device!);
+            _device = device;
+            bool connected = _device != null;
+            _selectionView.Visible = connected;
+            _connectView.Visible = !connected;
+            if (connected) _selectionView.SetDeviceName(_device!);
+        }
+        finally { _refreshing = false; }
     }
 
     private async Task RunDownloadAsync()
     {
         if (_device == null) return;
 
-        string? error = FolderNameValidator.Validate(
-            _selectionView.ParentDir,
-            _selectionView.FolderName,
-            out string fullPath
-        );
-        if (error != null)
-        {
-            Dialogs.Warning(this, error);
-            return;
-        }
-
-        var device = _device;
-        var period = _selectionView.SelectedPeriod;
-        var scanOptions = new ScanOptions(_selectionView.IncludeOtherMedia, _selectionView.IncludeVideos);
-        string parentDir = _selectionView.ParentDir;
-        string folderName = _selectionView.FolderName;
-
-        _cts = new CancellationTokenSource();
-        var ct = _cts.Token;
-
         try
         {
+            string? error = FolderNameValidator.Validate(
+                _selectionView.ParentDir,
+                _selectionView.FolderName,
+                out string fullPath
+            );
+            if (error != null)
+            {
+                Dialogs.Warning(this, error);
+                return;
+            }
+
+            var device = _device;
+            var period = _selectionView.SelectedPeriod;
+            var scanOptions = new ScanOptions(_selectionView.IncludeOtherMedia, _selectionView.IncludeVideos);
+            string parentDir = _selectionView.ParentDir;
+            string folderName = _selectionView.FolderName;
+
+            _cts = new CancellationTokenSource();
+            var ct = _cts.Token;
             _busy = true;
             _selectionView.SetBusy(true);
 
@@ -108,7 +118,7 @@ public class MainForm : Form
             {
                 totalBytes += p.Size;
             }
-            
+
             try
             {
                 if (!DiskSpaceChecker.HasEnoughSpace(parentDir, totalBytes))
@@ -126,7 +136,10 @@ public class MainForm : Form
             // Copia foto
             int total = photos.Count;
             _selectionView.ShowProgress(0, total);
-            var progress = new Progress<int>(v => _selectionView.ShowProgress(v, total));
+            var progress = new Progress<int>(v =>
+            {
+                if (!ct.IsCancellationRequested) _selectionView.ShowProgress(v, total);
+            });
 
             var result = await Task.Run(async () =>
             {
@@ -157,7 +170,12 @@ public class MainForm : Form
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
-        _cts?.Cancel();
+        if (_busy)
+        {
+            _cts?.Cancel();
+            e.Cancel = true; // Chiusura prima dell'annullamento non consentita
+            return;
+        }
         _timer.Stop();
         base.OnFormClosing(e);
     }

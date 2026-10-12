@@ -28,10 +28,14 @@ public static class FolderNameValidator
         string parentFull = Path.GetFullPath(parentDir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         string candidate = Path.GetFullPath(Path.Combine(parentDir, folderName));
 
-        string? candidateParent = Path.GetDirectoryName(candidate)?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        string? candidateParent = Path.GetDirectoryName(candidate)?
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
         if (!string.Equals(candidateParent, parentFull, StringComparison.OrdinalIgnoreCase))
             return "Nome cartella non valido o tentato accesso a un percorso non consentito.";
+
+        if (File.Exists(candidate))
+            return "Nella directory di destinazione esiste già un file con questo nome. Scegli un altro nome.";
 
         if (!CanWrite(parentDir))
             return "Non hai i permessi per scrivere nella cartella di destinazione.";

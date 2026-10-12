@@ -11,7 +11,7 @@ namespace DodosPhotoSaver.Sources;
 public sealed class MtpSession : IPhotoSession
 {
     private static readonly HashSet<string> PhotoExtensions =
-            new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".heic" };
+            new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".heic", ".heif", ".webp", ".dng" };
 
     private static readonly HashSet<string> VideoExtensions =
             new(StringComparer.OrdinalIgnoreCase) { ".3gp", ".avi", ".m4v", ".mkv", ".mov", ".mp4", ".webm" };
@@ -103,6 +103,8 @@ public sealed class MtpSession : IPhotoSession
         {
             // Si controlla l'annullamento a ogni file
             if (ct.IsCancellationRequested) return;
+
+            if (file.Name.StartsWith('.')) continue;
 
             string extension = Path.GetExtension(file.Name);
             bool isVideo = _includeVideos && VideoExtensions.Contains(extension);
