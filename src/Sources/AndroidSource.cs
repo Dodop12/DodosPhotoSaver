@@ -119,7 +119,7 @@ public class AndroidSource : IPhotoSource
         {
             foreach (string keyword in NonImageKeywords)
             {
-                if (name.Contains(
+                if (name.Equals(
                         keyword,
                         StringComparison.OrdinalIgnoreCase
                     ))

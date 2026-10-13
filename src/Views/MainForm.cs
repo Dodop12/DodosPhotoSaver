@@ -7,7 +7,7 @@ namespace DodosPhotoSaver.Views;
 /// <summary>Finestra principale: alterna le due schermate e gestisce il flusso di download.</summary>
 public class MainForm : Form
 {
-    private static readonly Size WindowSize = new(520, 390);
+    private static readonly Size WindowSize = new(520, 450);
 
     private readonly IPhotoSource _source; // riconosce da solo iPhone e Android
 
@@ -89,6 +89,7 @@ public class MainForm : Form
             _cts = new CancellationTokenSource();
             var ct = _cts.Token;
             _busy = true;
+            while (_refreshing) await Task.Delay(50);
             _selectionView.SetBusy(true);
 
             _selectionView.SetStatus("Ricerca in corso...");
@@ -172,8 +173,8 @@ public class MainForm : Form
     {
         if (_busy)
         {
-            _cts?.Cancel();
-            e.Cancel = true; // Chiusura prima dell'annullamento non consentita
+            if (Dialogs.ConfirmExit(this)) _cts?.Cancel();
+            e.Cancel = true;
             return;
         }
         _timer.Stop();

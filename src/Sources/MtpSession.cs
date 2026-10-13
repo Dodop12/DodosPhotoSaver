@@ -90,6 +90,13 @@ public sealed class MtpSession : IPhotoSession
     public List<PhotoItem> Scan(Period period, CancellationToken ct)
     {
         var result = new List<PhotoItem>();
+        var root = _device.GetRootDirectory();
+
+        if (!root.EnumerateDirectories().Any())
+            throw new InvalidOperationException(
+                "Nessuna memoria del telefono trovata. Riprova a sbloccare e autorizzare l'accesso."
+            );
+
         Walk(_device.GetRootDirectory(), period, result, 0, ct);
         return result;
     }
